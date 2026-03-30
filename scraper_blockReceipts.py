@@ -10,10 +10,12 @@ Env:
   RPC_TIMEOUT    default 60
 
 Usage:
-  python ingest_all.py --start 18000000 --end 18005000
-  python ingest_all.py --start 18000000 --end 18005000 --chunk 500 --block-batch 100
-  python ingest_all.py --start 18000000 --yaml config/stablecoins_detailed.yaml
+  python scraper_blockReceipts.py --start 18000000 --end 18005000
+  python scraper_blockReceipts.py --start 18000000 --end 18005000 --chunk 500 --block-batch 100
+  python scraper_blockReceipts.py --start 18000000 --yaml config/stablecoins_detailed.yaml
 """
+
+# good default: 1st of December 00:00:00 - 4652925
 
 import os
 import time
@@ -542,7 +544,24 @@ def insert_transfer_logs(conn: psycopg.Connection, logs: List[dict]) -> None:
         token_addr = hex_to_bytes20(lg["address"])
         from_addr = topic_to_addr(topics[1])
         to_addr = topic_to_addr(topics[2])
-        amount = hex_to_int_default0(lg.get("data"))
+        #amount = hex_to_int_default0(lg.get("data")) # doesnt work for malformed logs
+        data_hex = lg.get("data") or "0x"
+        try:
+            amount = uint256_from_data(data_hex, 0)
+        except Exception:
+            print(
+                "Skipping malformed transfer log:",
+                {
+                    "block": lg.get("blockNumber"),
+                    "tx": lg.get("transactionIndex"),
+                    "log": lg.get("logIndex"),
+                    "address": lg.get("address"),
+                    "topics_len": len(lg.get("topics") or []),
+                    "data_len": len(data_hex[2:] if data_hex.startswith("0x") else data_hex),
+                    "data": data_hex[:130],
+                }
+            )
+            continue
 
         parsed.append((bn, txi, logi, token_addr, from_addr, to_addr, amount))
         token_need.append(token_addr)
