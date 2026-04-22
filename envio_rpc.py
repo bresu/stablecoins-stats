@@ -698,7 +698,7 @@ def extract_logs_from_receipts(
 
 #     return out
 
-def fetch_block_receipts_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
+def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
     out: List[List[dict]] = []
     i = 0
     batch = max(1, start_batch)
