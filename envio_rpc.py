@@ -675,30 +675,30 @@ def extract_logs_from_receipts(
 
 # ---------------- batched fetch helpers ---------------- #
 
-# def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], full_tx: bool, start_batch: int) -> List[dict]:
-#     """Fetch blocks with adaptive batch size."""
-#     out = []
-#     i = 0
-#     batch = max(1, start_batch)
-#     max_batch = batch
+def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], full_tx: bool, start_batch: int) -> List[dict]:
+    """Fetch blocks with adaptive batch size."""
+    out = []
+    i = 0
+    batch = max(1, start_batch)
+    max_batch = batch
 
-#     while i < len(block_nums):
-#         chunk = block_nums[i:i + batch]
-#         try:
-#             out.extend(rpc.eth_get_block_by_number_batch(chunk, full_tx=full_tx))
-#             i += batch
-#             if batch < max_batch:
-#                 batch = min(max_batch, batch * 2)
-#         except RuntimeError as e:
-#             msg = str(e).lower()
-#             if ("response too large" in msg or "timeout" in msg) and batch > 1:
-#                 batch = max(1, batch // 2)
-#                 continue
-#             raise
+    while i < len(block_nums):
+        chunk = block_nums[i:i + batch]
+        try:
+            out.extend(rpc.eth_get_block_by_number_batch(chunk, full_tx=full_tx))
+            i += batch
+            if batch < max_batch:
+                batch = min(max_batch, batch * 2)
+        except RuntimeError as e:
+            msg = str(e).lower()
+            if ("response too large" in msg or "timeout" in msg) and batch > 1:
+                batch = max(1, batch // 2)
+                continue
+            raise
 
-#     return out
+    return out
 
-def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
+def fetch_block_receipts_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
     out: List[List[dict]] = []
     i = 0
     batch = max(1, start_batch)
@@ -735,28 +735,28 @@ def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: in
 
     return out
 
-def fetch_block_receipts_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
-    """Fetch block receipts with adaptive batch size."""
-    out: List[List[dict]] = []
-    i = 0
-    batch = max(1, start_batch)
-    max_batch = batch
+# def fetch_block_receipts_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
+#     """Fetch block receipts with adaptive batch size."""
+#     out: List[List[dict]] = []
+#     i = 0
+#     batch = max(1, start_batch)
+#     max_batch = batch
 
-    while i < len(block_nums):
-        chunk = block_nums[i:i + batch]
-        try:
-            out.extend(rpc.eth_get_block_receipts_batch(chunk))
-            i += batch
-            if batch < max_batch:
-                batch = min(max_batch, batch * 2)
-        except RuntimeError as e:
-            msg = str(e).lower()
-            if ("response too large" in msg or "timeout" in msg) and batch > 1:
-                batch = max(1, batch // 2)
-                continue
-            raise
+#     while i < len(block_nums):
+#         chunk = block_nums[i:i + batch]
+#         try:
+#             out.extend(rpc.eth_get_block_receipts_batch(chunk))
+#             i += batch
+#             if batch < max_batch:
+#                 batch = min(max_batch, batch * 2)
+#         except RuntimeError as e:
+#             msg = str(e).lower()
+#             if ("response too large" in msg or "timeout" in msg) and batch > 1:
+#                 batch = max(1, batch // 2)
+#                 continue
+#             raise
 
-    return out
+#     return out
 
 
 # ---------------- main ---------------- #
