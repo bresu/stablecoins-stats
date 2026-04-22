@@ -675,9 +675,31 @@ def extract_logs_from_receipts(
 
 # ---------------- batched fetch helpers ---------------- #
 
-def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], full_tx: bool, start_batch: int) -> List[dict]:
-    """Fetch blocks with adaptive batch size."""
-    out = []
+# def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], full_tx: bool, start_batch: int) -> List[dict]:
+#     """Fetch blocks with adaptive batch size."""
+#     out = []
+#     i = 0
+#     batch = max(1, start_batch)
+#     max_batch = batch
+
+#     while i < len(block_nums):
+#         chunk = block_nums[i:i + batch]
+#         try:
+#             out.extend(rpc.eth_get_block_by_number_batch(chunk, full_tx=full_tx))
+#             i += batch
+#             if batch < max_batch:
+#                 batch = min(max_batch, batch * 2)
+#         except RuntimeError as e:
+#             msg = str(e).lower()
+#             if ("response too large" in msg or "timeout" in msg) and batch > 1:
+#                 batch = max(1, batch // 2)
+#                 continue
+#             raise
+
+#     return out
+
+def fetch_block_receipts_adaptive(rpc: RpcClient, block_nums: List[int], start_batch: int) -> List[List[dict]]:
+    out: List[List[dict]] = []
     i = 0
     batch = max(1, start_batch)
     max_batch = batch
@@ -685,16 +707,31 @@ def fetch_blocks_adaptive(rpc: RpcClient, block_nums: List[int], full_tx: bool, 
     while i < len(block_nums):
         chunk = block_nums[i:i + batch]
         try:
-            out.extend(rpc.eth_get_block_by_number_batch(chunk, full_tx=full_tx))
-            i += batch
-            if batch < max_batch:
-                batch = min(max_batch, batch * 2)
+            print(f"Fetching receipts for blocks {chunk[0]} - {chunk[-1]} with batch={batch}")
+            res = rpc.eth_get_block_receipts_batch(chunk)
+            out.extend(res)
+            i += len(chunk)
         except RuntimeError as e:
             msg = str(e).lower()
-            if ("response too large" in msg or "timeout" in msg) and batch > 1:
-                batch = max(1, batch // 2)
-                continue
-            raise
+            if (
+                "response too large" in msg
+                or "timeout" in msg
+                or "missing batch response" in msg
+                or "rpc request failed" in msg
+            ):
+                if batch > 1:
+                    batch = max(1, batch // 2)
+                    print(f"Receipts fetch failed ({e}); reducing batch size to {batch}")
+                    continue
+
+                # batch already 1 -> retry single block once more after short sleep
+                print(f"Single-block receipts fetch failed ({e}); retrying once")
+                time.sleep(2)
+                res = rpc.eth_get_block_receipts_batch(chunk)
+                out.extend(res)
+                i += len(chunk)
+            else:
+                raise
 
     return out
 
